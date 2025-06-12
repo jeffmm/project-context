@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 import click
@@ -6,7 +7,7 @@ from jinja2 import Environment, FileSystemLoader
 from .tree import ProjectTree
 
 
-def project_context(
+def main(
     root: str | Path,
     exclude: list[str] | None = None,
     include: list[str] | None = None,
@@ -15,7 +16,7 @@ def project_context(
     output: str | Path | None = None,
     template: str | Path | None = None,
 ) -> None:
-    """Prints a tree structure of the files in the given ROOT directory.
+    """Generates a markdown file of project context to be consumed by LLMs.
 
     Args:
         root: The root directory to start the tree from.
@@ -55,7 +56,7 @@ def project_context(
         with open(output, "w") as f:
             f.write(output_content)
     else:
-        print(output_content)
+        sys.stdout.write(output_content)
 
 
 @click.command("project-context")
@@ -109,7 +110,7 @@ def cli(
     template: Path | None = None,
 ):
     """Prints a tree structure of the files in the given ROOT directory."""
-    project_context(
+    main(
         root,
         list(exclude) if exclude else None,
         list(only_include) if only_include else None,

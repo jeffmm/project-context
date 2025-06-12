@@ -256,11 +256,11 @@ class ProjectTree:
         if include is None:
             counter: Counter = Counter()
             for path in self.tree:
-                if path.path.is_file():
+                if path.path.is_file() and path.path.suffix:
                     counter[path.path.suffix] += 1
             if counter:
                 most_common_suffix, _ = counter.most_common(1)[0]
-                include = [rf".*{re.escape(most_common_suffix)}$"]
+                include = [rf".*{most_common_suffix}$"]
 
         inclusion_check = inclusion_check or self._default_inclusion_check(
             self.root, include=include
@@ -305,16 +305,16 @@ class ProjectTree:
 
         def check_inclusion_criteria(path: Path) -> bool:
             for incl in include_always:
-                if re.match(re.escape(incl), path.name):
+                if re.match(incl, path.name):
                     return True
             for excl in exclude:
-                if re.match(re.escape(excl), path.name):
+                if re.match(excl, path.name):
                     return False
             if include:
                 # If include is specified, we must match at least one pattern
                 # to include the path.
                 for incl in include:
-                    if re.match(re.escape(incl), path.name):
+                    if re.match(incl, path.name):
                         return True
                 return False
             if is_git_repo and is_file_tracked(path):
