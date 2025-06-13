@@ -114,16 +114,44 @@ By default, all files that are tracked by Git are included in the directory tree
 
 | Flag | Description | Example |
 |------|-------------|---------|
-| `--exclude, -e` | Regex patterns to exclude paths from the tree | `-e "test.*"` |
-| `--include, -i` | Only include paths matching these regex patterns | `-i ".*\.(py\|md\|y[a]?ml)$"` |
-| `--always-include, -a` | Always include these paths regardless of exclusion rules | `-a "README.*"` |
-| `--contents, -c` | Regex patterns to include paths matching these patterns in contents section | `-c ".*\.py$" ".*\.md$"` |
+| `--exclude, -e` | Regex patterns to exclude paths from the tree | `-e 'test.*'` |
+| `--include, -i` | Only include paths matching these regex patterns | `-i '.*\.py$' -i '.*\.y[a]?ml$` |
+| `--always-include, -a` | Always include these paths regardless of exclusion rules | `-a 'README.*'` |
+| `--contents, -c` | Regex patterns to include paths matching these patterns in contents section | `-c '.*\.py$' -c '^README\.*'` |
 | `--output, -o` | Output file path (prints to stdout if not specified) | `-o CONTEXT.md` |
 | `--template, -t` | Path to custom Jinja2 template file | `-t my_template.md.j2` |
 
+
+**Important:** Be careful to escape your regex args properly. Notice the use of single quotes around regex patterns to avoid issues due to shell expansion.
+
+All regex flags can be specified multiple times to include/exclude multiple patterns, and combined as needed.
+
+For any file in the root directory, the inclusion/exclusion rules are applied in the following order:
+
+#### Project Structure ("tree") Inclusion/Exclusion Rules
+
+- **IF** the path matches any pattern in **always-include**, **THEN** it is included in the tree.
+- **ELSE IF** the path matches any pattern in **exclude**, **THEN** it is excluded from the tree.
+- **ELSE IF** there are **include** patterns **THEN**
+    -  **IF** the path does NOT match any pattern in **include**, **THEN** it is excluded from the tree.
+    -  **ELSE** it is included in the tree.
+- **ELSE IF** the path is a file tracked by Git, **THEN** it is included in the tree.
+- **ELSE IF** the path is a file that is ignored using a `.gitignore`, **THEN** it is excluded from the tree.
+- **ELSE IF** the path is a dot-file (ie its name starts with a `.`), **THEN** it is excluded from the tree.
+- **ELSE** the path is included in the tree.
+
+#### Project Contents Inclusion/Exclusion Rules
+
+- **IF** the path is included in the tree, **THEN**
+    - **IF** there are **contents** patterns, **THEN**
+        - **IF** the path matches any patterns in **contents**, **THEN** its contents are included in the contents section.
+        - **ELSE** the path's contents are excluded from the contents section.
+    - **ELSE IF** the path suffix is the most common file type in the project, **THEN** its contents are included in the contents section.
+- **ELSE** the path's contents are excluded from the contents section.
+
 ### Advanced Usage Examples
 
-**Write the context to a custom dot file `.context.md`:**
+**Write the context to a custom dot-file:**
 
 ```bash
 project-context . -o .context.md
@@ -133,25 +161,25 @@ project-context . -o .context.md
 
 ```bash
 
-project-context . -c ".*\.(py|md|yaml)$"
+project-context . -c '.*\.(py|md|yaml)$'
 ```
 
-**Exclude all dot files and YAML files from the project context:**
+**Exclude multiple patterns from the project context:**
 
 ```bash
-project-context . -e "^\..*" ".*\.yaml$"
+project-context . -e '^\..*" -e ".*\.yaml$'
 ```
 
 **Exclude all YAML files, except for your `.pre-commit-config.yaml`:**
 
 ```bash
-project-context . -e ".*\.yaml$" -a "\.pre-commit-config\.yaml"
+project-context . -e '.*\.yaml$' -a '\.pre-commit-config\.yaml'
 ```
 
 **Only include typescript files and README files:**
 
 ```bash
-project-context . -i ".*\.ts$" -a "README.*"
+project-context . -i '.*\.ts$' -a 'README.*'
 ```
 
 **Generate the output using a custom template and write to file:**
@@ -171,10 +199,11 @@ repos:
     hooks:
       - id: project-context
         name: Generate LLM context from project contents
-        args: [".", "-o", "CONTEXT.md"]  # defaults, feel free to customize filters/output here
+        args: ['.', '-o', 'CONTEXT.md']  # defaults, feel free to customize filters/output here
 ```
 
-**Important**: Consider adding `CONTEXT.md` to your `.gitignore` file if you don't want to track the generated context file in your repository, since it effectively duplicates your project contents.
+**Important**:
+2. Consider adding `CONTEXT.md` to your `.gitignore` file if you don't want to track the generated context file in your repository, since it effectively duplicates your project contents.
 
 The pre-commit hook will automatically regenerate the context file whenever you make a commit, ensuring your project context is always up-to-date for sharing with LLMs.
 

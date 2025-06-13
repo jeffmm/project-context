@@ -4,5 +4,6 @@
     entry: project-context
     language: python
     files: ''
+    pass_filenames: false
     args: [".", "-o", "CONTEXT.md"]
     always_run: true
