@@ -36,6 +36,7 @@ repos:
         additional_dependencies:
           - types-click
           - jinja2
+          - pytest
   - repo: local
     hooks:
       - id: project-context
@@ -45,5 +46,5 @@ repos:
         language: python
         files: ''
         pass_filenames: false
-        args: [".", "-c", '".*\.(py|md|yaml)$\"']
+        args: [".", "-c", '.*\.(py|md|yaml)$', "-o", "CONTEXT.md"]
         always_run: true

@@ -17,7 +17,6 @@ def main(
     template: str | Path | None = None,
 ) -> None:
     """Generates a markdown file of project context to be consumed by LLMs.
-
     Args:
         root: The root directory to start the tree from.
         exclude: A tuple of regex patterns to exclude paths.
@@ -34,8 +33,11 @@ def main(
 
     root = Path(root).resolve()
     if template:
-        env = Environment(loader=FileSystemLoader(str(Path(template).parent)))
-        jinja_template = env.get_template(str(template))
+        template_path = Path(template)
+        env = Environment(loader=FileSystemLoader(str(template_path.parent)))
+        jinja_template = env.get_template(
+            template_path.name
+        )  # Use .name instead of str(template)
     else:
         # If no template is provided, use a string default template
         env = Environment()
@@ -44,6 +46,7 @@ def main(
             "## Project Structure\n\n{{ tree }}\n\n"
             "## Project Contents\n\n{{ contents }}"
         )
+
     tree = ProjectTree(
         root,
         exclude=exclude,

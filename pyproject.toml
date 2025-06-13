@@ -1,6 +1,5 @@
 [project]
 name = "project-context"
-version = "0.1.0"
 description = "Generate LLM-friendly markdown from your project files."
 readme = "README.md"
 authors = [
@@ -11,13 +10,22 @@ dependencies = [
     "click>=8.2.1",
     "jinja2>=3.1.6",
 ]
+dynamic = ["version"]
 
 [project.scripts]
 project-context = "project_context.main:cli"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+bump = true
 
 [dependency-groups]
 dev = [

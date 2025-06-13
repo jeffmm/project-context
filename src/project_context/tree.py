@@ -1,62 +1,9 @@
 import re
-import subprocess
 from collections import Counter
 from pathlib import Path
 from typing import Callable, Generator
 
-
-def is_file_tracked(path: str | Path) -> bool:
-    """Checks if a file is tracked by Git.
-
-    Args:
-        path: The path to the file.
-
-    Returns:
-        True if the file is tracked, False otherwise.
-    """
-    try:
-        # Ensure the filepath is relative to the git root
-        repo_root = subprocess.check_output(
-            ["git", "rev-parse", "--show-toplevel"], text=True
-        ).strip()
-        relative_path = Path(path).resolve().relative_to(repo_root)
-
-        # Run git ls-files to check if the file is tracked
-        subprocess.check_output(
-            ["git", "ls-files", "--error-unmatch", str(relative_path)],
-            stderr=subprocess.STDOUT,
-            text=True,
-        )
-        return True
-    except subprocess.CalledProcessError:
-        return False
-
-
-def is_path_gitignored(path: str | Path):
-    """Checks if a path is ignored by .gitignore.
-
-    Args:
-        path: The path to check.
-
-    Returns:
-        True if the path is ignored, False otherwise.
-    """
-
-    try:
-        repo_root = Path(
-            subprocess.check_output(
-                ["git", "rev-parse", "--show-toplevel"], text=True
-            ).strip()
-        ).absolute()
-        relative_path = Path(path).resolve().relative_to(Path(repo_root))
-        result = subprocess.run(
-            ["git", "check-ignore", "--quiet", str(relative_path)],
-            check=True,
-            capture_output=True,
-        )
-        return result.returncode == 0
-    except subprocess.CalledProcessError:
-        return False
+from .utils import is_file_tracked, is_path_gitignored
 
 
 class ProjectPath:
