@@ -130,24 +130,25 @@ For any file in the root directory, the inclusion/exclusion rules are applied in
 
 #### Project Structure ("tree") Inclusion/Exclusion Rules
 
-- **IF** the path matches any pattern in **always-include**, **THEN** it is included in the tree.
-- **ELSE IF** the path matches any pattern in **exclude**, **THEN** it is excluded from the tree.
+- **IF** the path matches any pattern in **always-include**, **THEN** it is included in the tree
+- **ELSE IF** the path matches any pattern in **exclude**, **THEN** it is excluded from the tree
 - **ELSE IF** there are **include** patterns **THEN**
-    -  **IF** the path does NOT match any pattern in **include**, **THEN** it is excluded from the tree.
-    -  **ELSE** it is included in the tree.
-- **ELSE IF** the path is a file tracked by Git, **THEN** it is included in the tree.
-- **ELSE IF** the path is a file that is ignored using a `.gitignore`, **THEN** it is excluded from the tree.
-- **ELSE IF** the path is a dot-file (ie its name starts with a `.`), **THEN** it is excluded from the tree.
-- **ELSE** the path is included in the tree.
+    -  **IF** the path matches any pattern in **include**, **THEN** it is included in the tree
+    -  **ELSE** it is excluded from the tree
+- **ELSE IF** the path is a file tracked by Git, **THEN** it is included in the tree
+- **ELSE IF** the path is a file that is ignored using a `.gitignore`, **THEN** it is excluded from the tree
+- **ELSE IF** the path is a dot-file (ie its name starts with a `.`), **THEN** it is excluded from the tree
+- **ELSE** the path is included in the tree
 
 #### Project Contents Inclusion/Exclusion Rules
 
 - **IF** the path is included in the tree, **THEN**
     - **IF** there are **contents** patterns, **THEN**
-        - **IF** the path matches any patterns in **contents**, **THEN** its contents are included in the contents section.
-        - **ELSE** the path's contents are excluded from the contents section.
-    - **ELSE IF** the path suffix is the most common file type in the project, **THEN** its contents are included in the contents section.
-- **ELSE** the path's contents are excluded from the contents section.
+        - **IF** the path matches any patterns in **contents**, **THEN** its contents are included in the contents section
+        - **ELSE** the path's contents are excluded from the contents section
+    - **ELSE IF** the path suffix is the most common file type in the project, **THEN** its contents are included in the contents section
+    - **ELSE** the path's contents are excluded from the contents section
+- **ELSE** the path's contents are excluded from the contents section
 
 ### Advanced Usage Examples
 
