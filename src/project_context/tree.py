@@ -173,7 +173,8 @@ class ProjectTree:
         )
 
     def __str__(self) -> str:
-        return "\n".join(str(path) for path in self.tree)
+        tree_str = "\n".join(str(path) for path in self.tree)
+        return f"```bash\n{tree_str}\n```"
 
     def to_markdown(
         self,
