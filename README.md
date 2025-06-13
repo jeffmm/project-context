@@ -167,7 +167,7 @@ project-context . -c '.*\.(py|md|yaml)$'
 **Exclude multiple patterns from the project context:**
 
 ```bash
-project-context . -e '^\..*" -e ".*\.yaml$'
+project-context . -e '^\..*' -e '.*\.yaml$'
 ```
 
 **Exclude all YAML files, except for your `.pre-commit-config.yaml`:**
