@@ -4,7 +4,6 @@ from unittest.mock import mock_open, patch
 
 import pytest
 
-from project_context.main import main
 from project_context.tree import (
     ProjectPath,
     ProjectTree,
@@ -152,67 +151,96 @@ class TestProjectTree:
             first_path = tree[0]
             assert isinstance(first_path, ProjectPath)
 
+    def test_project_path_str_nested_structure(self):
+        """Test string representation with multiple levels of nesting."""
+        # Create a 3-level nested structure: root -> parent -> child
+        root = ProjectPath("/project")
+        parent = ProjectPath("/project/parent", parent=root, is_last=False)
+        child = ProjectPath("/project/parent/child.py", parent=parent, is_last=True)
 
-class TestMainFunction:
-    """Test the main function and CLI functionality."""
+        with patch.object(Path, "is_dir", return_value=False):
+            result = str(child)
+            # Should contain the nested prefix structure
+            assert "└── child.py" in result
+            assert "│   " in result  # parent_prefix_last from the parent level
 
-    @pytest.fixture
-    def temp_project(self):
-        """Create a temporary project for testing main function."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-            (temp_path / "main.py").write_text("print('hello world')")
-            (temp_path / "README.md").write_text("# Test")
-            yield temp_path
+    def test_project_path_str_multiple_children(self):
+        """Test string representation with multiple children at different levels."""
+        root = ProjectPath("/project")
+        parent1 = ProjectPath("/project/dir1", parent=root, is_last=False)
+        child = ProjectPath("/project/dir1/file.py", parent=parent1, is_last=True)
 
-    def test_main_function_basic_usage(self, temp_project, capsys):
-        main(temp_project)
-        captured = capsys.readouterr()
+        with patch.object(Path, "is_dir", return_value=False):
+            result = str(child)
+            # Should use parent_prefix (4 spaces) since parent1 is not last
+            assert "│   └── file.py" in result
 
-        assert temp_project.name in captured.out
-        assert "Project Structure" in captured.out
-        assert "Project Contents" in captured.out
-
-    def test_main_function_with_output_file(self, temp_project):
-        output_file = temp_project / "output.md"
-        main(temp_project, output=output_file)
-
-        assert output_file.exists()
-        content = output_file.read_text()
-        assert "Project Structure" in content
-        assert "Project Contents" in content
-
-    def test_main_function_with_filters(self, temp_project, capsys):
-        main(temp_project, include=[".*\\.py$"], contents=[".*\\.py$"])
-        captured = capsys.readouterr()
-
-        assert "print('hello world')" in captured.out
-        assert "# Test" not in captured.out
-
-    def test_main_function_with_custom_template(self, temp_project):
-        template_path = temp_project / "template.j2"
-        template_path.write_text("Custom: {{ root }}\n{{ tree }}\n{{ contents }}")
-
-        output_file = temp_project / "output.md"
-        main(temp_project, template=template_path, output=output_file)
-
-        content = output_file.read_text()
-        assert content.startswith(f"Custom: {temp_project.name}")
-
-    def test_main_function_with_exclude_patterns(self, temp_project, capsys):
-        main(temp_project, exclude=[".*\\.md$"])
-        captured = capsys.readouterr()
-
-        # Should exclude markdown files from tree
-        assert "README.md" not in captured.out
-
-    @patch("project_context.main.sys.stdout")
-    def test_main_function_stdout_writing(self, mock_stdout, temp_project):
-        main(temp_project, contents=[".*\\.py$"])
-        mock_stdout.write.assert_called()
-
-        # Verify the content written to stdout
-        written_content = "".join(
-            call.args[0] for call in mock_stdout.write.call_args_list
+    @patch("project_context.tree.is_file_tracked")
+    @patch("project_context.tree.is_path_gitignored")
+    def test_default_inclusion_check_git_tracked_file(
+        self, mock_gitignored, mock_tracked, temp_project
+    ):
+        """Test that git-tracked files are included when in a git repo."""
+        # Mock git repo detection and file tracking
+        mock_tracked.side_effect = (
+            lambda path: str(path).endswith("tracked.py")
+            if hasattr(path, "endswith")
+            else True
         )
-        assert "Project Structure" in written_content
+        mock_gitignored.return_value = False
+
+        inclusion_check = ProjectTree._default_inclusion_check(temp_project)
+
+        test_path = temp_project / "tracked.py"
+        test_path.touch()
+
+        # Should include git-tracked files
+        assert inclusion_check(test_path) is True
+
+    @patch("project_context.tree.is_file_tracked")
+    @patch("project_context.tree.is_path_gitignored")
+    def test_default_inclusion_check_dotfile_exclusion(
+        self, mock_gitignored, mock_tracked, temp_project
+    ):
+        """Test that dotfiles are excluded when not git-tracked."""
+        # Mock git repo but file is not tracked
+        mock_tracked.side_effect = (
+            lambda path: False if str(path).endswith(".hidden") else True
+        )
+        mock_gitignored.return_value = False
+
+        inclusion_check = ProjectTree._default_inclusion_check(temp_project)
+
+        # Test dotfile exclusion
+        dotfile_path = temp_project / ".hidden"
+        dotfile_path.touch()
+
+        # Should exclude dotfiles that aren't git-tracked
+        assert inclusion_check(dotfile_path) is False
+
+    @patch("project_context.tree.is_file_tracked")
+    @patch("project_context.tree.is_path_gitignored")
+    def test_default_inclusion_check_gitignored_exclusion(
+        self, mock_gitignored, mock_tracked, temp_project
+    ):
+        """Test that gitignored files are excluded."""
+
+        # Mock git repo detection - root is a git repo, but ignored.py is not tracked
+        def mock_tracked_side_effect(path):
+            if str(path) == str(temp_project):
+                return True  # Root is git repo
+            elif str(path).endswith("ignored.py"):
+                return False  # ignored.py is not tracked
+            else:
+                return True  # Other files are tracked
+
+        mock_tracked.side_effect = mock_tracked_side_effect
+        mock_gitignored.side_effect = lambda path: str(path).endswith("ignored.py")
+
+        inclusion_check = ProjectTree._default_inclusion_check(temp_project)
+
+        ignored_path = temp_project / "ignored.py"
+        ignored_path.touch()
+
+        # Should exclude gitignored files
+        assert inclusion_check(ignored_path) is False

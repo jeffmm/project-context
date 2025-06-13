@@ -31,6 +31,7 @@ bump = true
 dev = [
     "pre-commit>=4.2.0",
     "pytest>=8.4.0",
+    "pytest-cov>=6.2.1",
 ]
 
 [tool.coverage.run]
@@ -38,9 +39,16 @@ source = ["src"]
 omit = ["tests/*"]
 
 [tool.coverage.report]
+fail_under = 80
+show_missing = true
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
     "raise AssertionError",
     "raise NotImplementedError",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+addopts = "-v --cov=project_context"

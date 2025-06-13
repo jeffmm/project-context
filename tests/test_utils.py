@@ -2,159 +2,228 @@ import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from project_context.utils import (
+    get_root_paths,
     is_file_tracked,
     is_path_gitignored,
 )
 
 
+@pytest.fixture
+def git_repo(tmp_path):
+    """Create a git repository with tracked, untracked, and ignored files."""
+    # Initialize git repo
+    subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.com"], cwd=tmp_path, check=True
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Test User"], cwd=tmp_path, check=True
+    )
+
+    # Create and track a file
+    tracked_file = tmp_path / "tracked.py"
+    tracked_file.write_text("# tracked file")
+    subprocess.run(["git", "add", "tracked.py"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "commit", "-m", "initial"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+
+    # Create .gitignore first
+    gitignore = tmp_path / ".gitignore"
+    gitignore.write_text("*.log\nignored.py\n")
+
+    # Create a subdirectory with tracked files
+    subdir = tmp_path / "subdir"
+    subdir.mkdir()
+    tracked_sub = subdir / "tracked_sub.py"
+    tracked_sub.write_text("# tracked in subdir")
+
+    # Add gitignore and subdir files
+    subprocess.run(["git", "add", ".gitignore", "subdir/"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "commit", "-m", "add more files"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+
+    # Create untracked and ignored files AFTER commits
+    untracked_file = tmp_path / "untracked.py"
+    untracked_file.write_text("# untracked file")
+
+    ignored_file = tmp_path / "ignored.py"
+    ignored_file.write_text("# ignored file")
+
+    return tmp_path
+
+
 class TestGitUtilities:
     """Test Git-related utility functions."""
 
-    @patch("project_context.utils.subprocess.run")
+    def test_get_root_paths_returns_none_specifically_for_git_directory(self, git_repo):
+        """Test that get_root_paths returns (None, None) specifically because path is .git directory."""
+        # Test with the .git directory - should return (None, None)
+        git_dir = git_repo / ".git"
+        result_git = get_root_paths(git_dir)
+        assert result_git == (None, None)
+
+        # Test with a regular directory in the same repo - should succeed
+        regular_dir = git_repo / "subdir"
+        result_regular = get_root_paths(regular_dir)
+        assert result_regular != (None, None)
+        assert result_regular[0] == git_repo
+
+    def test_get_root_paths_with_nonexistent_path(self, tmp_path):
+        """Test get_root_paths with non-existent path."""
+        nonexistent = tmp_path / "does_not_exist"
+        result = get_root_paths(nonexistent)
+        assert result == (None, None)
+
+    def test_get_root_paths_outside_git_repo(self, tmp_path):
+        """Test get_root_paths outside a git repository."""
+        regular_dir = tmp_path / "not_git"
+        regular_dir.mkdir()
+        result = get_root_paths(regular_dir)
+        assert result == (None, None)
+
+    def test_is_file_tracked_with_tracked_file(self, git_repo):
+        """Test is_file_tracked returns True for tracked files."""
+        tracked_file = git_repo / "tracked.py"
+        assert is_file_tracked(tracked_file) is True
+
+        # Test with file in subdirectory
+        tracked_sub = git_repo / "subdir" / "tracked_sub.py"
+        assert is_file_tracked(tracked_sub) is True
+
+    def test_is_file_tracked_with_untracked_file(self, git_repo):
+        """Test is_file_tracked returns False for untracked files."""
+        untracked_file = git_repo / "untracked.py"
+        assert is_file_tracked(untracked_file) is False
+
+    def test_is_file_tracked_outside_git_repo(self, tmp_path):
+        """Test is_file_tracked returns False outside git repository."""
+        regular_file = tmp_path / "file.py"
+        regular_file.write_text("content")
+        assert is_file_tracked(regular_file) is False
+
+    def test_is_path_gitignored_with_ignored_file(self, git_repo):
+        """Test is_path_gitignored returns True for ignored files."""
+        ignored_file = git_repo / "ignored.py"
+        assert is_path_gitignored(ignored_file) is True
+
+        # Test with pattern match
+        log_file = git_repo / "debug.log"
+        log_file.write_text("log content")
+        assert is_path_gitignored(log_file) is True
+
+    def test_is_path_gitignored_with_tracked_file(self, git_repo):
+        """Test is_path_gitignored returns False for tracked files."""
+        tracked_file = git_repo / "tracked.py"
+        assert is_path_gitignored(tracked_file) is False
+
+    def test_is_path_gitignored_outside_git_repo(self, tmp_path):
+        """Test is_path_gitignored returns False outside git repository."""
+        regular_file = tmp_path / "file.py"
+        regular_file.write_text("content")
+        assert is_path_gitignored(regular_file) is False
+
     @patch("project_context.utils.subprocess.check_output")
-    def test_is_file_tracked_returns_true_for_tracked_file(
-        self, mock_check_output, mock_run
-    ):
-        # Mock the git rev-parse --git-dir call
-        mock_run.return_value = MagicMock(returncode=0)
-
-        mock_check_output.side_effect = [
-            "/repo/root\n",  # git rev-parse --show-toplevel
-            "file.py\n",  # git ls-files --error-unmatch
-        ]
-
-        with patch("project_context.utils.Path") as mock_path_class:
-            # Create mock path objects
-            mock_file_path = MagicMock()
-            mock_file_path.is_file.return_value = True
-            mock_file_path.is_dir.return_value = False
-
-            # Create mock parent directory
-            mock_parent_dir = MagicMock()
-            mock_parent_dir.exists.return_value = True
-            mock_file_path.parent = mock_parent_dir
-
-            # Create mock resolved paths for relative_to calculation
-            mock_resolved_file = MagicMock()
-            mock_resolved_repo = MagicMock()
-            mock_resolved_file.relative_to.return_value = Path("file.py")
-
-            # Configure Path class mock to return appropriate objects
-            def path_side_effect(path_str):
-                if path_str == "/repo/root/file.py":
-                    return mock_file_path
-                elif path_str == "/repo/root":
-                    mock_repo_path = MagicMock()
-                    mock_repo_path.resolve.return_value = mock_resolved_repo
-                    return mock_repo_path
-                else:
-                    # For any other Path creation, return a basic mock
-                    mock_other = MagicMock()
-                    mock_other.resolve.return_value = mock_resolved_file
-                    return mock_other
-
-            mock_path_class.side_effect = path_side_effect
-
-            result = is_file_tracked("/repo/root/file.py")
-            assert result is True
-
     @patch("project_context.utils.subprocess.run")
-    @patch("project_context.utils.subprocess.check_output")
-    def test_is_file_tracked_returns_false_for_untracked_file(
-        self, mock_check_output, mock_run
+    @patch("project_context.utils.Path")
+    def test_get_root_paths_handles_subprocess_error(
+        self, mock_path_class, mock_run, mock_check_output
     ):
-        # Mock the git rev-parse --git-dir call
+        """Test get_root_paths returns (None, None) when subprocess.CalledProcessError is raised."""
+        mock_path = MagicMock()
+        mock_path.exists.return_value = True
+        mock_path.name = "regular_dir"
+        mock_path.is_dir.return_value = True
+        mock_path_class.return_value = mock_path
+
+        # First subprocess call succeeds, second fails
         mock_run.return_value = MagicMock(returncode=0)
+        mock_check_output.side_effect = subprocess.CalledProcessError(1, "git")
 
-        mock_check_output.side_effect = [
-            "/repo/root\n",  # git rev-parse --show-toplevel
-            subprocess.CalledProcessError(1, "git ls-files"),  # git ls-files fails
-        ]
+        result = get_root_paths("/some/path")
+        assert result == (None, None)
 
-        with patch("project_context.utils.Path") as mock_path:
-            # Mock Path behavior
-            mock_path_obj = MagicMock()
-            mock_path_obj.is_file.return_value = True
-            mock_path_obj.parent = Path("/repo/root")
-            mock_path.return_value = mock_path_obj
-
-            result = is_file_tracked("/repo/root/untracked.py")
-            assert result is False
-
+    @patch("project_context.utils.subprocess.check_output")
     @patch("project_context.utils.subprocess.run")
-    @patch("project_context.utils.subprocess.check_output")
-    def test_is_file_tracked_returns_false_for_fake_file(
-        self, mock_check_output, mock_run
+    @patch("project_context.utils.Path")
+    def test_get_root_paths_handles_value_error(
+        self, mock_path_class, mock_run, mock_check_output
     ):
-        # Mock the git rev-parse --git-dir call
-        mock_run.return_value = MagicMock(returncode=0)
+        """Test get_root_paths returns (None, None) when ValueError is raised."""
+        mock_path = MagicMock()
+        mock_path.exists.return_value = True
+        mock_path.name = "regular_dir"
+        mock_path.is_dir.return_value = True
+        mock_path_class.return_value = mock_path
 
-        mock_check_output.side_effect = [
-            "/repo/root\n",  # git rev-parse --show-toplevel
-            subprocess.CalledProcessError(1, "git ls-files"),  # git ls-files fails
-        ]
-        result = is_file_tracked("/repo/root/untracked.py")
+        mock_run.return_value = MagicMock(returncode=0)
+        mock_check_output.return_value = "/repo/root\n"
+
+        # Make relative_to raise ValueError
+        mock_path.relative_to.side_effect = ValueError("Not a relative path")
+
+        result = get_root_paths("/some/path")
+        assert result == (None, None)
+
+    @patch("project_context.utils.get_root_paths")
+    @patch("project_context.utils.subprocess.check_output")
+    @patch("project_context.utils.Path")
+    def test_is_file_tracked_handles_value_error(
+        self, mock_path_class, mock_check_output, mock_get_root_paths
+    ):
+        """Test is_file_tracked returns False when ValueError is raised."""
+        mock_path = MagicMock()
+        mock_path_class.return_value = mock_path
+
+        # get_root_paths succeeds
+        mock_get_root_paths.return_value = (Path("/repo"), Path("file.py"))
+
+        # But subprocess.check_output raises ValueError
+        mock_check_output.side_effect = ValueError("Invalid path")
+
+        result = is_file_tracked("/repo/file.py")
         assert result is False
 
+    @patch("project_context.utils.get_root_paths")
     @patch("project_context.utils.subprocess.run")
-    def test_is_file_tracked_handles_git_error(self, mock_run):
-        # Mock the git rev-parse --git-dir call to fail (not in git repo)
-        mock_run.return_value = MagicMock(returncode=1)
+    @patch("project_context.utils.Path")
+    def test_is_path_gitignored_handles_subprocess_error(
+        self, mock_path_class, mock_run, mock_get_root_paths
+    ):
+        """Test is_path_gitignored returns False when subprocess.CalledProcessError is raised."""
+        mock_path = MagicMock()
+        mock_path_class.return_value = mock_path
 
-        result = is_file_tracked("/not/a/git/repo/file.py")
+        # get_root_paths succeeds
+        mock_get_root_paths.return_value = (Path("/repo"), Path("file.py"))
+
+        # But subprocess.run raises CalledProcessError
+        mock_run.side_effect = subprocess.CalledProcessError(1, "git")
+
+        result = is_path_gitignored("/repo/file.py")
         assert result is False
 
-    @patch("project_context.utils.subprocess.run")
-    @patch("project_context.utils.subprocess.check_output")
-    def test_is_path_gitignored_returns_true_for_ignored_path(
-        self, mock_check_output, mock_run_main
+    @patch("project_context.utils.get_root_paths")
+    @patch("project_context.utils.Path")
+    def test_is_path_gitignored_handles_value_error(
+        self, mock_path_class, mock_get_root_paths
     ):
-        # Mock the git rev-parse --git-dir call
-        mock_run_main.return_value = MagicMock(returncode=0)
+        """Test is_path_gitignored returns False when ValueError is raised."""
+        mock_path = MagicMock()
+        mock_path_class.return_value = mock_path
 
-        mock_check_output.return_value = "/repo/root\n"
+        # get_root_paths raises ValueError
+        mock_get_root_paths.side_effect = ValueError("Invalid path operation")
 
-        # Mock the git check-ignore call
-        with patch("project_context.utils.subprocess.run") as mock_run_check:
-            with patch("project_context.utils.Path") as mock_path:
-                # Mock Path behavior
-                mock_path_obj = MagicMock()
-                mock_path_obj.exists.return_value = True
-                mock_path_obj.is_dir.return_value = False
-                mock_path.return_value = mock_path_obj
-                mock_run_check.return_value = MagicMock(returncode=0)
-                result = is_path_gitignored("/repo/root/.env")
-                assert result is True
-
-    @patch("project_context.utils.subprocess.run")
-    @patch("project_context.utils.subprocess.check_output")
-    def test_is_path_gitignored_returns_false_for_tracked_path(
-        self, mock_check_output, mock_run_main
-    ):
-        # Mock the git rev-parse --git-dir call
-        mock_run_main.return_value = MagicMock(returncode=0)
-
-        mock_check_output.return_value = "/repo/root\n"
-
-        # Mock the git check-ignore call to fail (file not ignored)
-        with patch("project_context.utils.subprocess.run") as mock_run_check:
-            mock_run_check.return_value = MagicMock(returncode=1)
-            result = is_path_gitignored("/repo/root/file.py")
-            assert result is False
-
-    @patch("project_context.utils.subprocess.run")
-    @patch("project_context.utils.subprocess.check_output")
-    def test_is_path_gitignored_returns_true_for_fake_path(
-        self, mock_check_output, mock_run_main
-    ):
-        # Mock the git rev-parse --git-dir call
-        mock_run_main.return_value = MagicMock(returncode=0)
-
-        mock_check_output.return_value = "/repo/root\n"
-
-        # Mock the git check-ignore call
-        with patch("project_context.utils.subprocess.run") as mock_run_check:
-            mock_run_check.return_value = MagicMock(returncode=0)
-            result = is_path_gitignored("/repo/root/.env")
-            assert result is False
+        result = is_path_gitignored("/repo/file.py")
+        assert result is False

@@ -2,7 +2,7 @@ import subprocess
 from pathlib import Path
 
 
-def get_root_paths(path: Path) -> tuple[Path | None, Path | None]:
+def get_root_paths(path: str | Path) -> tuple[Path | None, Path | None]:
     """Returns the root path of the Git repository and the relative path from the root.
 
     If the path is not in a Git repository, returns (None, None).
@@ -15,6 +15,7 @@ def get_root_paths(path: Path) -> tuple[Path | None, Path | None]:
         If the path is not in a Git repository, returns (None, None).
     """
     try:
+        path = Path(path)
         if not path.exists():
             return None, None
 
@@ -39,9 +40,7 @@ def get_root_paths(path: Path) -> tuple[Path | None, Path | None]:
             stderr=subprocess.DEVNULL,  # Suppress error output
             text=True,
         ).strip()
-        return Path(repo_root).resolve(), path.resolve().relative_to(
-            Path(repo_root).resolve()
-        )
+        return Path(repo_root), path.relative_to(Path(repo_root))
 
     except (subprocess.CalledProcessError, ValueError):
         return None, None
