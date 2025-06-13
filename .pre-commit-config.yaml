@@ -19,15 +19,12 @@ repos:
       - id: ruff-check
         types_or: [ python ]
         args: [ "--select", "I", "--fix" ]
-        files: ^src/matchbite/.*\.py$
       # Run the formatter.
       - id: ruff-format
         types_or: [ python ]
-        files: ^src/matchbite/.*\.py$
       - id: ruff
         name: ruff-format-imports
         args: ["check", "--select", "I", "--fix"]
-        files: ^src/matchbite/.*\.py$
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: "v1.16.0"
     hooks:

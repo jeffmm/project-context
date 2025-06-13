@@ -1,12 +1,14 @@
-import pytest
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
+
+import pytest
+
+from project_context.main import main
 from project_context.tree import (
     ProjectPath,
     ProjectTree,
 )
-from project_context.main import main
 
 
 class TestProjectPath:
