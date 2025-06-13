@@ -36,6 +36,17 @@ class TestMainFunction:
         assert "Project Structure" in content
         assert "Project Contents" in content
 
+    @patch("project_context.main.Path")
+    def test_main_function_without_root(self, mock_path, temp_project):
+        output_file = temp_project / "output.md"
+        mock_path.return_value = temp_project
+        main(output=output_file)
+
+        assert output_file.exists()
+        content = output_file.read_text()
+        assert "Project Structure" in content
+        assert "Project Contents" in content
+
     def test_main_function_with_filters(self, temp_project, capsys):
         main(temp_project, include=[".*\\.py$"], contents=[".*\\.py$"])
         captured = capsys.readouterr()

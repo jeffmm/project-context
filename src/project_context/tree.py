@@ -2,6 +2,7 @@ import re
 from collections import Counter
 from pathlib import Path
 from typing import Callable, Generator
+from unittest.mock import patch
 
 from .utils import is_file_tracked, is_path_gitignored
 

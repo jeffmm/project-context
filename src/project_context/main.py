@@ -8,7 +8,7 @@ from .tree import ProjectTree
 
 
 def main(
-    root: str | Path,
+    root: str | Path | None = None,
     exclude: list[str] | None = None,
     include: list[str] | None = None,
     always_include: list[str] | None = None,
@@ -31,6 +31,8 @@ def main(
             rendering the output. If not provided, a default template is used.
     """
 
+    if root is None:
+        root = Path.cwd()
     root = Path(root).resolve()
     if template:
         template_path = Path(template)
@@ -64,7 +66,12 @@ def main(
 
 
 @click.command("project-context")
-@click.argument("root", type=click.Path(exists=True, file_okay=False, path_type=Path))  # type: ignore
+@click.option(
+    "--root",
+    "-r",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),  # type: ignore
+    help="Root directory of the project. If not provided, the current directory is used.",
+)
 @click.option(
     "--exclude",
     "-e",
@@ -105,21 +112,21 @@ def main(
     ),
 )
 def cli(
-    root: Path,
-    exclude: tuple[str],
+    root: Path | None = None,
+    exclude: tuple[str] | None = None,
     include: tuple[str] | None = None,
     always_include: tuple[str] | None = None,
     contents: tuple[str] | None = None,
     output: Path | None = None,
     template: Path | None = None,
 ):
-    """Prints a tree structure of the files in the given ROOT directory."""
+    """project-context generates LLM-friendly markdown files from your project contents."""
     main(
         root,
-        list(exclude) if exclude else None,
-        list(include) if include else None,
-        list(always_include) if always_include else None,
-        list(contents) if contents else None,
+        exclude=list(exclude) if exclude else None,
+        include=list(include) if include else None,
+        always_include=list(always_include) if always_include else None,
+        contents=list(contents) if contents else None,
         output=output,
         template=template,
     )
