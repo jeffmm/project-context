@@ -2,6 +2,7 @@ import re
 from collections import Counter
 from pathlib import Path
 from typing import Callable, Generator
+from unittest.mock import patch
 
 from .utils import is_file_tracked, is_path_gitignored
 
@@ -173,7 +174,8 @@ class ProjectTree:
         )
 
     def __str__(self) -> str:
-        return "\n".join(str(path) for path in self.tree)
+        tree_str = "\n".join(str(path) for path in self.tree)
+        return f"```bash\n{tree_str}\n```"
 
     def to_markdown(
         self,

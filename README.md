@@ -44,7 +44,7 @@ if __name__ == "__main__":
     main()
 ```
 
-Running `project-context .` in the project root would generate the following output to stdout:
+Running `project-context` from the project root would generate the following output to stdout:
 
 ````markdown
 # hello-world-pkg
@@ -102,13 +102,13 @@ By default, all files tracked by Git are included in the directory tree.
 Generate context for the current directory and write it to stdout:
 
 ```bash
-project-context .
+project-context
 ```
 
 Save output to a file:
 
 ```bash
-project-context . -o CONTEXT.md
+project-context -o CONTEXT.md
 ```
 
 ### Customizing the Output
@@ -119,6 +119,7 @@ By default, all files that are tracked by Git are included in the directory tree
 
 | Flag | Description | Example |
 |------|-------------|---------|
+| `--root, -r` | Root directory to use. Defaults to the current working directory. | `-r my-repo` |
 | `--exclude, -e` | Regex patterns to exclude paths from the tree | `-e 'test.*'` |
 | `--include, -i` | Only include paths matching these regex patterns | `-i '.*\.py$' -i '.*\.y[a]?ml$` |
 | `--always-include, -a` | Always include these paths regardless of exclusion rules | `-a 'README.*'` |
@@ -157,41 +158,41 @@ For any file in the root directory, the inclusion/exclusion rules are applied in
 
 ### Advanced Usage Examples
 
-**Write the context to a custom dot-file:**
+**Write the context of a subdirectory to a custom dot-file:**
 
 ```bash
-project-context . -o .context.md
+project-context -r src/my_project -o src/my_project/.context.md
 ```
 
 **Include Python files, YAML files, and markdown files in the content section:**
 
 ```bash
 
-project-context . -c '.*\.(py|md|yaml)$'
+project-context -c '.*\.(py|md|yaml)$'
 ```
 
 **Exclude multiple patterns from the project context:**
 
 ```bash
-project-context . -e '^\..*' -e '.*\.yaml$'
+project-context -e '^\..*' -e '.*\.yaml$'
 ```
 
 **Exclude all YAML files, except for your `.pre-commit-config.yaml`:**
 
 ```bash
-project-context . -e '.*\.yaml$' -a '\.pre-commit-config\.yaml'
+project-context -e '.*\.yaml$' -a '\.pre-commit-config\.yaml'
 ```
 
 **Only include typescript files and README files:**
 
 ```bash
-project-context . -i '.*\.ts$' -a 'README.*'
+project-context -i '.*\.ts$' -a 'README.*'
 ```
 
 **Generate the output using a custom template and write to file:**
 
 ```bash
-project-context . -t custom_template.md.j2 -o CONTEXT.md
+project-context -t custom_template.md.j2 -o CONTEXT.md
 ```
 
 ### Pre-commit Hook Integration
@@ -205,11 +206,12 @@ repos:
     hooks:
       - id: project-context
         name: Generate LLM context from project contents
-        args: ['.', '-o', 'CONTEXT.md']  # defaults, feel free to customize filters/output here
+        files: ''  # change as needed if you only want to update when specific files change
+        args: ['-o', 'CONTEXT.md']  # default args, update as needed
 ```
 
 **Important**:
-2. Consider adding `CONTEXT.md` to your `.gitignore` file if you don't want to track the generated context file in your repository, since it effectively duplicates your project contents.
+Consider adding `CONTEXT.md` to your `.gitignore` file if you don't want to track the generated context file in your repository, since it effectively duplicates your project contents.
 
 The pre-commit hook will automatically regenerate the context file whenever you make a commit, ensuring your project context is always up-to-date for sharing with LLMs.
 
@@ -263,5 +265,5 @@ Here are some guidelines and constraints on how the project should be maintained
 Then you can generate the context using your custom template like this:
 
 ```bash
-project-context . -t custom_template.md.j2 -o CONTEXT.md
+project-context -t custom_template.md.j2 -o CONTEXT.md
 ```
