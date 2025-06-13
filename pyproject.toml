@@ -32,3 +32,16 @@ dev = [
     "pre-commit>=4.2.0",
     "pytest>=8.4.0",
 ]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]
+

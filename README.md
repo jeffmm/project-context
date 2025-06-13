@@ -2,6 +2,11 @@
 
 Generate LLM-friendly markdown from your project files.
 
+[![CI/CD](https://github.com/your-username/project-context/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/project-context/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/your-username/project-context/branch/main/graph/badge.svg)](https://codecov.io/gh/your-username/project-context)
+[![PyPI version](https://badge.fury.io/py/project-context.svg)](https://badge.fury.io/py/project-context)
+[![Python versions](https://img.shields.io/pypi/pyversions/project-context.svg)](https://pypi.org/project/project-context/)
+
 ## Project Context Generator
 
 `project-context` is a Python tool that generates LLM-friendly markdown documentation of your entire project structure and contents. It creates a single markdown file containing both a visual tree representation of your project and the actual content of your source files, making it easy to share your codebase context with AI assistants.

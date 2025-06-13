@@ -46,5 +46,5 @@ repos:
         language: python
         files: ''
         pass_filenames: false
-        args: [".", "-c", '.*\.(py|md|yaml)$', "-o", "CONTEXT.md"]
+        args: [".", "-c", '.*\.(py|md|yaml|toml)$', "-o", "CONTEXT.md"]
         always_run: true
