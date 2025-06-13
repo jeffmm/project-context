@@ -1,0 +1,8 @@
+-   id: project-context
+    name: Generate LLM context from project contents.
+    description: This hook generates a file CONTEXT.md containing the entire project's contents as an LLM-friendly markdown file.
+    entry: project-context
+    language: python
+    files: ''
+    args: [".", "-o", "CONTEXT.md"]
+    always_run: true
