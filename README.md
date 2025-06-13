@@ -2,7 +2,7 @@
 
 Generate LLM-friendly markdown from your project files.
 
-[![CI/CD](https://github.com/your-username/project-context/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/project-context/actions/workflows/ci.yml)
+[![CI/CD](https://github.com/your-username/project-context/actions/workflows/ci.yaml/badge.svg)](https://github.com/your-username/project-context/actions/workflows/ci.yaml)
 [![codecov](https://codecov.io/gh/your-username/project-context/branch/main/graph/badge.svg)](https://codecov.io/gh/your-username/project-context)
 [![PyPI version](https://badge.fury.io/py/project-context.svg)](https://badge.fury.io/py/project-context)
 [![Python versions](https://img.shields.io/pypi/pyversions/project-context.svg)](https://pypi.org/project/project-context/)
