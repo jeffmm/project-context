@@ -80,7 +80,7 @@ This single markdown file now contains your entire project context in a format t
 uv tool install project-context
 ```
 
-Evoke using `uvx project-context`:
+Evoke using `uvx project-context`
 
 #### Using `pip`
 
@@ -201,7 +201,7 @@ For a well-documented project, the default can work well enough on its own, but 
 For example, using a template like this would add a header to the context with some project-specific details that can help steer the LLM to produce output that's more aligned to your project's needs:
 
 ```jinja2
-<! -- custom_template.md.j2 -->
+{# custom_template.md.j2 #}
 # {{ root }}
 
 ## Project Description
@@ -213,7 +213,7 @@ Here is a brief description of the project and its purpose...
 Here is the planned roadmap for the project...
 
 ### Developer Guidelines
-Here are some guidelines and constraints on how the project should be maintained and developed...
+Here are some guidelines and constraints on how the project should be maintained...
 
 ## Project Structure
 
