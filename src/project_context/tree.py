@@ -158,13 +158,13 @@ class ProjectTree:
         root: The root directory to start the tree from.
         exclude: A list of regex patterns to exclude paths. If provided,
             paths matched by this list are excluded unless they match a regex
-            in the include_always list. By default, paths matching a
+            in the always_include list. By default, paths matching a
             .gitignore in the root directory or paths starting with a dot
             are always excluded unless they are in the include lists.
         include: A list of regex patterns to include paths. If provided,
             paths not in this list are excluded unless they are in the
-            include_always list.
-        include_always: A list of regex patterns to include paths, which takes
+            always_include list.
+        always_include: A list of regex patterns to include paths, which takes
             precedence over other inclusion_check, allowing for exceptions to
             the exclude list.
         inclusion_check: A callable that takes a Path and returns True if the path
@@ -180,7 +180,7 @@ class ProjectTree:
         root: str | Path,
         exclude: list[str] | None = None,
         include: list[str] | None = None,
-        include_always: list[str] | None = None,
+        always_include: list[str] | None = None,
         inclusion_check: Callable[[Path], bool] | None = None,
     ):
         """Initialize ProjectPaths to be included in the context.
@@ -189,13 +189,13 @@ class ProjectTree:
             root: The root of the project to build the project context from.
             exclude: A list of regex patterns to exclude paths. If provided,
                 paths matched by this list are excluded unless they match a regex
-                in the include_always list. By default, paths matching a
+                in the always_include list. By default, paths matching a
                 .gitignore in the root directory or paths starting with a dot
                 are always excluded unless they are in the include lists.
             include: A list of regex patterns to include paths. If provided,
                 paths not in this list are excluded unless they are in the
-                include_always list.
-            include_always: A list of regex patterns to include paths, which takes
+                always_include list.
+            always_include: A list of regex patterns to include paths, which takes
                 precedence over other inclusion_check, allowing for exceptions to
                 the exclude list.
             inclusion_check: A callable that takes a Path and returns True if the path
@@ -205,7 +205,7 @@ class ProjectTree:
         """
 
         inclusion_check = inclusion_check or self._default_inclusion_check(
-            root, exclude, include, include_always
+            root, exclude, include, always_include
         )
 
         self.root = Path(str(root))
@@ -248,7 +248,7 @@ class ProjectTree:
         Args:
             include: A list of regex patterns to include paths. If provided,
                 paths not in this list are excluded unless they are in the
-                include_always list. By default only the files with most common
+                always_include list. By default only the files with most common
                 suffix in the project will be included.
             inclusion_check: A callable that takes a Path and returns True if the path
                 should be included. If provided, the include list is ignored.
@@ -276,13 +276,13 @@ class ProjectTree:
         root_path: str | Path,
         exclude: list[str] | None = None,
         include: list[str] | None = None,
-        include_always: list[str] | None = None,
+        always_include: list[str] | None = None,
     ) -> Callable[[Path], bool]:
         """Default inclusion_check for filtering paths in the tree.
 
         Filters paths based on the following rules, from highest to lowest
         priority order:
-            - Paths that match any pattern in `include_always` are included.
+            - Paths that match any pattern in `always_include` are included.
             - Paths that match any pattern in `exclude` are excluded.
             - Paths that do not match any pattern in `include` are excluded.
             - If the project is a git repository, Paths that are being tracked
@@ -295,16 +295,16 @@ class ProjectTree:
             root_path: The root directory path to check for `.gitignore`.
             exclude: A list of regex patterns to exclude paths.
             include: A list of regex patterns to include only matching paths.
-            include_always: A list of regex patterns to include paths
+            always_include: A list of regex patterns to include paths
                 regardless of exclusion rules.
         """
         is_git_repo = is_file_tracked(root_path)
         exclude = exclude or []
-        include_always = include_always or []
+        always_include = always_include or []
         include = include or []
 
         def check_inclusion_criteria(path: Path) -> bool:
-            for incl in include_always:
+            for incl in always_include:
                 if re.match(incl, path.name):
                     return True
             for excl in exclude:

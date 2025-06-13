@@ -2,7 +2,6 @@
 
 Generate LLM-friendly markdown from your project files.
 
-
 ## Project Context Generator
 
 `project-context` is a Python tool that generates LLM-friendly markdown documentation of your entire project structure and contents. It creates a single markdown file containing both a visual tree representation of your project and the actual content of your source files, making it easy to share your codebase context with AI assistants.
@@ -31,6 +30,7 @@ hello-world-pkg/
 ```
 
 Where `src/hello_world/main.py` contains:
+
 ```python
 def main():
     print("Hello, World!")
@@ -39,12 +39,12 @@ if __name__ == "__main__":
     main()
 ```
 
-Running `project-context .` would generate the following output:
+Running `project-context .` in the project root would generate the following output to stdout:
 
 ````markdown
 # hello-world-pkg
 
-## Project structure
+## Project Structure
 
 hello-world-pkg/
 ├── .gitignore
@@ -55,7 +55,7 @@ hello-world-pkg/
         ├── __init__.py
         └── main.py
 
-## Project contents
+## Project Contents
 
 ### src/hello_world/main.py
 
@@ -66,31 +66,29 @@ def main():
 if __name__ == "__main__":
     main()
 ```
-
-
 ````
 
-Explanation: By default, all files that are tracked by Git are included in the directory tree. Only the content of `src/hello_world/main.py` is included in the project contents section, since `.py` is the most common file type in this project.
-
-### Customizing the Output
-
-If you wanted both Python files and markdown files in the content section:
-
-```bash
-project-context . -m ".*\.py$" ".*\.md$" -o CONTEXT.md
-```
-
-This would generate the same tree structure but the contents of the README would also be included in the "Project contents" section, and additionally the output would be written to `CONTEXT.md` instead of printing to stdout.
-
-This single markdown file now contains your entire project context in a format that's perfect for pasting into ChatGPT, Claude, or any other LLM when you need help with your code!
+This single markdown file now contains your entire project context in a format that's perfect for pasting into ChatGPT, Claude, Gemini, or any other LLM when you need help with your code!
 
 ## Usage
 
 ### Installation
 
+#### Using `uv` (recommended)
+
+```bash
+uv tool install project-context
+```
+
+Evoke using `uvx project-context`:
+
+#### Using `pip`
+
 ```bash
 pip install project-context
 ```
+
+Evoke using `project-context`
 
 ### Basic Usage
 
@@ -108,44 +106,63 @@ Save output to a file:
 project-context . -o CONTEXT.md
 ```
 
+### Customizing the Output
+
+By default, all files that are tracked by Git are included in the directory tree in the `Project structure` section, and only the _most common file type_ is included as part of the `Project contents` section. In the above example, the only file included was `src/hello_world/main.py` since `.py` is the most common file type in this project (`__init__.py` was excluded since it was empty).
+
+#### Command Line Options
+
+| Flag | Description | Example |
+|------|-------------|---------|
+| `--exclude, -e` | Regex patterns to exclude paths from the tree | `-e "test.*"` |
+| `--include, -i` | Only include paths matching these regex patterns | `-i ".*\.(py\|md\|y[a]?ml)$"` |
+| `--always-include, -a` | Always include these paths regardless of exclusion rules | `-a "README.*"` |
+| `--contents, -c` | Regex patterns to include paths matching these patterns in contents section | `-c ".*\.py$" ".*\.md$"` |
+| `--output, -o` | Output file path (prints to stdout if not specified) | `-o CONTEXT.md` |
+| `--template, -t` | Path to custom Jinja2 template file | `-t my_template.md.j2` |
+
 ### Advanced Usage Examples
 
-**Include only Python files in the file contents:**
+**Write the context to a custom dot file `.context.md`:**
 
 ```bash
-project-context . -m ".*\.py$" -o CONTEXT.md
+project-context . -o .context.md
 ```
 
-**Exclude test directories but always include README files:**
+**Include Python files, YAML files, and markdown files in the content section:**
 
 ```bash
-project-context . -e "test.*" -a "README.*" -o CONTEXT.md
+
+project-context . -c ".*\.(py|md|yaml)$"
 ```
 
-**Include only specific file types in the tree structure:**
+**Exclude all dot files and YAML files from the project context:**
 
 ```bash
-project-context . -i ".*\.(py|md|yaml)$" -o CONTEXT.md
+project-context . -e "^\..*" ".*\.yaml$"
 ```
 
-**Use a custom template:**
+**Exclude all YAML files, except for your `.pre-commit-config.yaml`:**
 
 ```bash
-project-context . -t my_template.md.j2 -o CONTEXT.md
+project-context . -e ".*\.yaml$" -a "\.pre-commit-config\.yaml"
 ```
 
-### Command Line Options
+**Only include typescript files and README files:**
 
-- `--exclude, -e`: Regex patterns to exclude paths from the tree
-- `--include, -i`: Only include paths matching these regex patterns
-- `--always-include, -a`: Always include these paths regardless of exclusion rules
-- `--markdown, -m`: Regex patterns to include only paths matching these regex patterns in markdown contents
-- `--output, -o`: Output file path (prints to stdout if not specified)
-- `--template, -t`: Path to custom Jinja2 template file
+```bash
+project-context . -i ".*\.ts$" -a "README.*"
+```
+
+**Generate the output using a custom template and write to file:**
+
+```bash
+project-context . -t custom_template.md.j2 -o CONTEXT.md
+```
 
 ### Pre-commit Hook Integration
 
-Add this to your `.pre-commit-config.yaml`:
+For automated context generation on each commit, add this to your `.pre-commit-config.yaml`:
 
 ```yaml
 repos:
@@ -163,33 +180,53 @@ The pre-commit hook will automatically regenerate the context file whenever you 
 
 ### Jinja2 Template Customization
 
-For a well-documented project, the default template can work well on its own, but you can further customize the output format by providing a Jinja2 template file.
-
-This can be useful for providing additional context or constraints that might improve the quality of AI responses.
-
-For example, this template could add a header with some project-specific details:
+The default output template is:
 
 ```jinja2
-<! -- my_template.md.j2 -->
-# Your Project Name
+# {{ root }}
 
-<!-- Add a high-level overview of the project's purpose and goals -->
-<!-- Add guidelines or constraints that might be useful for steering the LLM -->
-<!-- e.g. "provides so-and-so service using FastAPI and pydantic" -->
-
-## Project structure
+## Project Structure
 
 {{ tree }}
 
-## Project contents
+## Project Contents
+
+{{ contents }}
+```
+
+For a well-documented project, the default can work well enough on its own, but you can further customize the output format by providing your own Jinja2 template file. This can be useful for providing additional context or constraints that might improve the quality of AI responses.
+
+`project-context` defines three variables for rendering the output: `root`, `tree`, and `contents`.
+
+For example, using a template like this would add a header to the context with some project-specific details that can help steer the LLM to produce output that's more aligned to your project's needs:
+
+```jinja2
+<! -- custom_template.md.j2 -->
+# {{ root }}
+
+## Project Description
+
+### High-level Overview:
+Here is a brief description of the project and its purpose...
+
+### Project Roadmap
+Here is the planned roadmap for the project...
+
+### Developer Guidelines
+Here are some guidelines and constraints on how the project should be maintained and developed...
+
+## Project Structure
+
+{{ tree }}
+
+## Project Contents
 
 {{ contents }}
 
 ```
 
-Then simply run:
+Then you can generate the context using your custom template like this:
 
 ```bash
-project-context . -t my_template.md.j2 -o CONTEXT.md
+project-context . -t custom_template.md.j2 -o CONTEXT.md
 ```
-

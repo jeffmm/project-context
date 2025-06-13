@@ -11,8 +11,8 @@ def main(
     root: str | Path,
     exclude: list[str] | None = None,
     include: list[str] | None = None,
-    include_always: list[str] | None = None,
-    markdown: list[str] | None = None,
+    always_include: list[str] | None = None,
+    contents: list[str] | None = None,
     output: str | Path | None = None,
     template: str | Path | None = None,
 ) -> None:
@@ -22,10 +22,10 @@ def main(
         root: The root directory to start the tree from.
         exclude: A tuple of regex patterns to exclude paths.
         include: A tuple of regex patterns to include only matching paths.
-        include_always: A tuple of regex patterns to include paths regardless
+        always_include: A tuple of regex patterns to include paths regardless
             of exclusion rules.
-        markdown: A tuple of regex patterns to include only matching paths for
-            markdown output.
+        contents: A tuple of regex patterns to include only matching paths for
+            project content output.
         output: An optional output file to write the tree structure. If not
             provided, the output is printed to stdout.
         template: An optional path to a Jinja template file to use for
@@ -40,17 +40,18 @@ def main(
         # If no template is provided, use a string default template
         env = Environment()
         jinja_template = env.from_string(
-            f"# {root.name}\n\n## Project structure\n\n"
-            "{{ tree }}\n\n## Project contents\n\n{{ contents }}"
+            "# {{ root }}\n\n"
+            "## Project Structure\n\n{{ tree }}\n\n"
+            "## Project Contents\n\n{{ contents }}"
         )
     tree = ProjectTree(
         root,
         exclude=exclude,
         include=include,
-        include_always=include_always,
+        always_include=always_include,
     )
     output_content = jinja_template.render(
-        tree=str(tree), contents=(tree.to_markdown(include=markdown))
+        root=root.name, tree=str(tree), contents=(tree.to_markdown(include=contents))
     )
     if output:
         with open(output, "w") as f:
@@ -68,7 +69,7 @@ def main(
     help="Regex patterns to exclude paths.",
 )
 @click.option(
-    "--only-include",
+    "--include",
     "-i",
     multiple=True,
     help="Regex patterns to include only matching paths.",
@@ -80,10 +81,10 @@ def main(
     help="Regex patterns to include paths regardless of exclusion rules.",
 )
 @click.option(
-    "--markdown",
-    "-m",
+    "--contents",
+    "-c",
     multiple=True,
-    help="Regex patterns to include only matching paths for markdown output.",
+    help="Regex patterns to include only matching paths for content output.",
 )
 @click.option(
     "--output",
@@ -103,9 +104,9 @@ def main(
 def cli(
     root: Path,
     exclude: tuple[str],
-    only_include: tuple[str] | None = None,
+    include: tuple[str] | None = None,
     always_include: tuple[str] | None = None,
-    markdown: tuple[str] | None = None,
+    contents: tuple[str] | None = None,
     output: Path | None = None,
     template: Path | None = None,
 ):
@@ -113,9 +114,9 @@ def cli(
     main(
         root,
         list(exclude) if exclude else None,
-        list(only_include) if only_include else None,
+        list(include) if include else None,
         list(always_include) if always_include else None,
-        list(markdown) if markdown else None,
+        list(contents) if contents else None,
         output=output,
         template=template,
     )
