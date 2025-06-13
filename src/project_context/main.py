@@ -41,7 +41,7 @@ def main(
         env = Environment()
         jinja_template = env.from_string(
             f"# {root.name}\n\n## Project structure\n\n"
-            "{{ tree }}\n\n## Project contents\n\n{{ markdown }}"
+            "{{ tree }}\n\n## Project contents\n\n{{ contents }}"
         )
     tree = ProjectTree(
         root,
@@ -50,7 +50,7 @@ def main(
         include_always=include_always,
     )
     output_content = jinja_template.render(
-        tree=str(tree), markdown=(tree.to_markdown(include=markdown))
+        tree=str(tree), contents=(tree.to_markdown(include=markdown))
     )
     if output:
         with open(output, "w") as f:
@@ -97,7 +97,7 @@ def main(
     type=click.Path(exists=True, dir_okay=False, path_type=Path),  # type: ignore
     help=(
         "Optional Jinja template to use for rendering the "
-        "output. Uses `tree` and `markdown` as context variables."
+        "output. Uses `tree` and `contents` as context variables."
     ),
 )
 def cli(
