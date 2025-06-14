@@ -3,9 +3,8 @@
 Generate LLM-friendly markdown from your project files.
 
 [![CI/CD](https://github.com/jeffmm/project-context/actions/workflows/ci.yaml/badge.svg)](https://github.com/jeffmm/project-context/actions/workflows/ci.yaml)
-[![codecov](https://codecov.io/gh/jeffmm/project-context/branch/main/graph/badge.svg)](https://codecov.io/gh/jeffmm/project-context)
+[![codecov](https://codecov.io/gh/jeffmm/project-context/graph/badge.svg?token=JXY3RPZ7EA)](https://codecov.io/gh/jeffmm/project-context)
 [![PyPI version](https://badge.fury.io/py/project-context.svg)](https://badge.fury.io/py/project-context)
-[![Python versions](https://img.shields.io/pypi/pyversions/project-context.svg)](https://pypi.org/project/project-context/)
 
 ## Project Context Generator
 
